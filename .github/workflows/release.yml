@@ -15,14 +15,20 @@
 name: Release
 on:
   push:
-    tags:
-    - 'v*.*.*'
+    #tags:
+    #- 'v*.*.*'
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@master
+    - name: Setup Snapcraft
+      uses: samuelmeuli/action-snapcraft@v1
+    - id: create-snapcraft-cache-dirs
+      run: |
+        mkdir -p $HOME/.cache/snapcraft/download
+        mkdir -p $HOME/.cache/snapcraft/stage-packages
     - name: Setup Go
       uses: actions/setup-go@v2
       with:
@@ -34,6 +40,11 @@ jobs:
         args: release --rm-dist
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Publish Snapcraft to Snap Store
+      run: for snap in $(ls dist/*.snap); do snapcraft upload --release=edge $snap; done
+      env:
+        SNAPCRAFT_STORE_AUTH: candid
+        SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
     - name: Update new version for plugin 'ctx' in krew-index
       uses: rajatjindal/krew-release-bot@v0.0.38
       with:
